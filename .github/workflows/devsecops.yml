@@ -39,7 +39,7 @@ jobs:
     # Stage 6 - Generate Source SBOM
     - name: Generate Source SBOM
       run: |
-        syft dir:. -o cyclonedx-json > source-sbom.json
+        syft dir:. -o spdx-json > source-sbom.json
 
     # Stage 7 - Install Trivy
     - name: Install Trivy
@@ -57,7 +57,7 @@ jobs:
     # Stage 9 - Generate Image SBOM
     - name: Generate Image SBOM
       run: |
-        syft python-sbom-demo:latest -o cyclonedx-json > image-sbom.json
+        syft python-sbom-demo:latest -o spdx-json > image-sbom.json
 
     # Stage 10 - Scan Docker Image
     - name: Scan Image Vulnerabilities
@@ -71,6 +71,12 @@ jobs:
     - name: Install Grype
       if: always()
       uses: anchore/scan-action/download-grype@v3
+
+    - name: Update Grype DB
+      if: always()
+      run: |
+        grype db update
+
 
     - name: Scan Image SBOM with Grype
       if: always()
