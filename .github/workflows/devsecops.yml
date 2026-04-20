@@ -67,6 +67,10 @@ jobs:
         format: table
         exit-code: 1
         severity: CRITICAL,HIGH
+        
+    - name: Install Grype
+      if: always()
+      uses: anchore/scan-action/download-grype@v3
 
     - name: Scan Image SBOM with Grype
       if: always()
