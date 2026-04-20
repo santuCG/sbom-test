@@ -1,27 +1,48 @@
-name: Nightly SBOM Rescan
+name: Nightly SBOM Re-Scan
 
 on:
   schedule:
-    - cron: '0 2 * * *'   # every day 02:00 UTC
+    - cron: '0 2 * * *'   # Daily at 02:00 UTC
   workflow_dispatch:
 
 jobs:
-  rescan:
+  nightly-rescan:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
 
-    - name: Download Stored SBOM
+    # Stage 1 - Download SBOM Artifact from Latest Run
+    - name: Download SBOM Reports
       uses: actions/download-artifact@v4
       with:
-        name: image-sbom
+        name: sbom-reports
 
+    # Stage 2 - Verify Files
+    - name: List Downloaded Files
+      run: |
+        ls -la
+
+    # Stage 3 - Install Grype
     - name: Install Grype
       run: |
         curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
-    - name: Scan SBOM
+    # Stage 4 - Re-Scan Image SBOM
+    - name: Scan Image SBOM
       run: |
         grype sbom:image-sbom.json --fail-on high
+
+    # Stage 5 - Re-Scan Source SBOM
+    - name: Scan Source SBOM
+      run: |
+        grype sbom:source-sbom.json --fail-on high
+
+    # Stage 6 - Upload Scan Results
+    - name: Upload Scan Evidence
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: nightly-scan-results
+        path: |
+          image-sbom.json
+          source-sbom.json
