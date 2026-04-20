@@ -68,6 +68,17 @@ jobs:
         exit-code: 1
         severity: CRITICAL,HIGH
 
+    - name: Scan Image SBOM with Grype
+      if: always()
+      run: |
+        grype sbom:image-sbom.json --fail-on high
+
+    # 13. Scan Generated Source SBOM with Grype
+    - name: Scan Source SBOM with Grype
+      if: always()
+      run: |
+        grype sbom:source-sbom.json --fail-on high
+
     # Stage 11 - Upload SBOM Artifacts
     - name: Upload SBOM Files
       if: always()
