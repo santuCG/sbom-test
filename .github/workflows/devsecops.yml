@@ -82,12 +82,18 @@ jobs:
       if: always()
       run: |
         grype sbom:image-sbom.json --fail-on high
+      env:
+        GRYPE_DB_AUTO_UPDATE: true
+        GRYPE_DB_VALIDATE_AGE: false
 
     # 13. Scan Generated Source SBOM with Grype
     - name: Scan Source SBOM with Grype
       if: always()
       run: |
         grype sbom:source-sbom.json --fail-on high
+      env:
+        GRYPE_DB_AUTO_UPDATE: true
+        GRYPE_DB_VALIDATE_AGE: false
 
     # Stage 11 - Upload SBOM Artifacts
     - name: Upload SBOM Files
