@@ -1,0 +1,78 @@
+name: Python DevSecOps SBOM Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  security-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+
+    # Stage 1 - Checkout
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # Stage 2 - Setup Python
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    # Stage 3 - Install Dependencies
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt
+
+    # Stage 4 - Run Unit Test
+    - name: Basic Test
+      run: |
+        python -c "import flask, requests; print('Tests Passed')"
+
+    # Stage 5 - Install Syft
+    - name: Install Syft
+      run: |
+        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+    # Stage 6 - Generate Source SBOM
+    - name: Generate Source SBOM
+      run: |
+        syft dir:. -o cyclonedx-json > source-sbom.json
+
+    # Stage 7 - Install Trivy
+    - name: Install Trivy
+      uses: aquasecurity/trivy-action@0.20.0
+      with:
+        scan-type: fs
+        scan-ref: .
+        format: table
+
+    # Stage 8 - Build Docker Image
+    - name: Build Docker Image
+      run: |
+        docker build -t python-sbom-demo:latest .
+
+    # Stage 9 - Generate Image SBOM
+    - name: Generate Image SBOM
+      run: |
+        syft python-sbom-demo:latest -o cyclonedx-json > image-sbom.json
+
+    # Stage 10 - Scan Docker Image
+    - name: Scan Image Vulnerabilities
+      uses: aquasecurity/trivy-action@0.20.0
+      with:
+        image-ref: python-sbom-demo:latest
+        format: table
+        exit-code: 1
+        severity: CRITICAL,HIGH
+
+    # Stage 11 - Upload SBOM Artifacts
+    - name: Upload SBOM Files
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom-reports
+        path: |
+          source-sbom.json
+          image-sbom.json
